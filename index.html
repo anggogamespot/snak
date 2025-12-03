@@ -1,741 +1,115 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retro Arcade Snake</title>
-    <!-- Load Tailwind CSS for utility classes -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load the Inter font (default, but we'll use a pixel font for the game) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Load a retro/pixel font for the game itself -->
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <!-- Load Tone.js for retro sound effects -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-    <style>
-        :root {
-            --game-background: #000;
-            --snake-color: #00ff00; /* Neon Green */
-            --food-color: #ff00ff; /* Magenta */
-            --powerup-slow-color: #00ffff; /* Cyan */
-            --powerup-double-color: #ffff00; /* Yellow */
-            --powerup-invincible-color: #ff0000; /* Red */
-            --retro-shadow-green: 0 0 5px #00ff00, 0 0 10px #00ff00;
-            --retro-shadow-yellow: 0 0 5px #ffff00, 0 0 10px #ffff00;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1a1a2e;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            margin: 0;
-            overflow: hidden;
-        }
-
-        /* Retro Pixel Font for Game Elements */
-        .retro-font {
-            font-family: 'Press Start 2P', cursive;
-            text-shadow: var(--retro-shadow-green);
-        }
-
-        /* Main Game Container Styling */
-        #game-container {
-            background: #232938;
-            border: 8px solid #00ffff;
-            box-shadow: 0 0 20px #00ffff, inset 0 0 10px #00ffff;
-            padding: 1rem;
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-            width: 100%;
-            max-width: 500px;
-        }
-
-        /* Game Canvas (The Screen) */
-        #game-canvas {
-            background-color: var(--game-background);
-            border: 4px inset #3d3d3d;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
-            border-radius: 4px;
-        }
-
-        /* Information Bar */
-        #info-bar {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            color: var(--snake-color);
-            text-align: center;
-        }
-
-        #score-display, #powerup-status {
-            font-size: 0.8rem;
-            text-shadow: var(--retro-shadow-green);
-        }
-        
-        #powerup-status {
-            color: var(--food-color);
-            text-shadow: var(--retro-shadow-yellow);
-        }
-
-        /* Game Message Overlay */
-        #message-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: none; /* Initially hidden */
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background-color: rgba(0, 0, 0, 0.8);
-            z-index: 100;
-            border-radius: 4px;
-        }
-
-        #message-overlay.active {
-            display: flex;
-        }
-
-        .message-box {
-            background: #000;
-            border: 3px solid var(--powerup-invincible-color);
-            box-shadow: 0 0 15px var(--powerup-invincible-color);
-            padding: 2rem;
-            text-align: center;
-        }
-
-        .message-title {
-            color: var(--snake-color);
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .message-score {
-            color: var(--food-color);
-            font-size: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        /* Button Styling */
-        .retro-button {
-            font-family: 'Press Start 2P', cursive;
-            background: var(--snake-color);
-            color: #000;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            box-shadow: 2px 2px 0px 0px #008800;
-            transition: all 0.1s ease;
-            font-size: 0.7rem;
-            border-radius: 2px;
-        }
-
-        .retro-button:hover {
-            background: #33ff33;
-            box-shadow: 3px 3px 0px 0px #00aa00;
-        }
-
-        .retro-button:active {
-            box-shadow: 1px 1px 0px 0px #008800;
-            transform: translateY(1px) translateX(1px);
-        }
-        
-        /* Mobile Controls */
-        #mobile-controls {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-top: 1rem;
-            width: 100%;
-        }
-
-        .d-pad-btn {
-            background: #333;
-            color: var(--snake-color);
-            width: 60px;
-            height: 60px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.5rem;
-            border: 3px solid #00ffff;
-            box-shadow: 0 0 5px #00ffff;
-            border-radius: 8px;
-            transition: background 0.1s;
-        }
-
-        .d-pad-btn:active {
-            background: #555;
-            box-shadow: 0 0 10px #00ffff;
-        }
-
-        @media (max-width: 600px) {
-            #game-container {
-                padding: 0.5rem;
-                border-width: 4px;
-            }
-            #score-display, #powerup-status {
-                font-size: 0.7rem;
-            }
-            .retro-button {
-                font-size: 0.6rem;
-                padding: 8px 15px;
-            }
-            .d-pad-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 1.2rem;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Upload Image to Telegra.ph</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #000;
+    color: #fff;
+    margin: 0;
+    padding: 0;
+  }
+  .container {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #222;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+  }
+  h1 {
+    color: #007bff;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  form {
+    text-align: center;
+  }
+  label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+  }
+  input[type="file"] {
+    margin-bottom: 20px;
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #666;
+    background-color: #333;
+    color: #fff;
+    box-sizing: border-box;
+  }
+  input[type="submit"] {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  input[type="submit"]:hover {
+    background-color: #0056b3;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #555;
+    margin: 20px 0;
+  }
+  .image-container {
+    text-align: center;
+    margin-top: 20px;
+  }
+  .image-container img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+  }
+  p {
+    text-align: center;
+    margin-top: 20px;
+    color: #ccc;
+  }
+  strong {
+    color: #007bff;
+  }
+  .footer {
+    text-align: center;
+    margin-top: 20px;
+    color: #ccc;
+  }
+  .footer a {
+    color: #fff;
+    text-decoration: none;
+  }
+  .footer a:hover {
+    color: #007bff;
+  }
+</style>
 </head>
 <body>
-
-    <div id="game-container">
-        <h1 class="retro-font text-2xl text-white mb-2" style="text-shadow: var(--retro-shadow-yellow);">SNAKE ARCADE</h1>
-
-        <div id="info-bar" class="retro-font">
-            <div id="score-display">SCORE: 00</div>
-            <div id="powerup-status"></div>
-        </div>
-
-        <div style="position: relative;">
-            <canvas id="game-canvas"></canvas>
-            
-            <div id="message-overlay" class="retro-font">
-                <div class="message-box">
-                    <p id="message-title" class="message-title">Press START</p>
-                    <p id="message-score" class="message-score"></p>
-                    <button id="start-button" class="retro-button">START</button>
-                    <div class="mt-4 text-xs text-gray-400">
-                        <p>Controls: W/A/S/D or Arrow Keys</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Mobile/Touch Controls -->
-        <div id="mobile-controls" class="sm:hidden grid grid-cols-3 grid-rows-2 w-full max-w-xs gap-2">
-            <div></div> <!-- Spacer -->
-            <button class="d-pad-btn row-start-1" data-direction="UP">▲</button>
-            <div></div> <!-- Spacer -->
-            <button class="d-pad-btn col-start-1 row-start-2" data-direction="LEFT">◀</button>
-            <div class="row-start-2"></div> <!-- Spacer -->
-            <button class="d-pad-btn row-start-2" data-direction="RIGHT">▶</button>
-        </div>
-        <button class="retro-button" id="down-button" data-direction="DOWN" style="display:none;">▼</button>
-
-    </div>
-
-    <script>
-        // Game Constants
-        const GRID_SIZE = 20;
-        const TILE_SIZE = 20; // Size of each tile in pixels
-        const CANVAS_SIZE = GRID_SIZE * TILE_SIZE;
-
-        // Difficulty Tuning
-        const INITIAL_SPEED = 100; // milliseconds per movement step
-        const SPEED_DECREMENT_PER_LEVEL = 5; // how much faster (in ms) per score level
-        const LEVEL_UP_SCORE = 5; // score required to increase speed
-
-        // Power-up Settings
-        const POWER_UP_DURATION = 5000; // 5 seconds
-        const POWER_UP_CHANCE = 0.2; // 20% chance for power-up instead of food
-
-        // Get DOM Elements
-        const canvas = document.getElementById('game-canvas');
-        const ctx = canvas.getContext('2d');
-        const scoreDisplay = document.getElementById('score-display');
-        const powerupStatus = document.getElementById('powerup-status');
-        const overlay = document.getElementById('message-overlay');
-        const messageTitle = document.getElementById('message-title');
-        const messageScore = document.getElementById('message-score');
-        const startButton = document.getElementById('start-button');
-        const mobileControls = document.getElementById('mobile-controls');
-
-        // Global Game State
-        let snake = [];
-        let food = {};
-        let direction = 'RIGHT';
-        let nextDirection = 'RIGHT';
-        let score = 0;
-        let gameSpeed = INITIAL_SPEED;
-        let isGameOver = true;
-        let lastUpdateTime = 0;
-        let animationFrameId = null;
-        let powerUp = {
-            type: null,
-            endTime: 0
-        };
-
-        // Power-up Types
-        const powerUpTypes = {
-            INVINCIBILITY: { color: '#FF0000', effect: 'Invincible' }, // Red
-            DOUBLE_SCORE: { color: '#FFFF00', effect: '2X Score' }, // Yellow
-            SLOW_MOTION: { color: '#00FFFF', effect: 'Slow Motion' } // Cyan
-        };
-        const powerUpKeys = Object.keys(powerUpTypes);
-
-        // --- TONE.JS SOUND SETUP ---
-        const synth = new Tone.PolySynth(Tone.Synth, {
-            oscillator: { type: 'sine' },
-            envelope: {
-                attack: 0.005,
-                decay: 0.1,
-                sustain: 0.1,
-                release: 0.05
-            }
-        }).toDestination();
-
-        const noise = new Tone.NoiseSynth({
-            noise: { type: 'pink' },
-            envelope: {
-                attack: 0.001,
-                decay: 0.2,
-                sustain: 0,
-                release: 0.2
-            }
-        }).toDestination();
-
-        /**
-         * Plays a retro sound effect for eating food.
-         */
-        function playEatSound() {
-            if (Tone.context.state !== 'running') return;
-            synth.triggerAttackRelease(['C5', 'E5'], '8n');
-        }
-
-        /**
-         * Plays a distinctive sound for a power-up activation.
-         */
-        function playPowerUpSound() {
-            if (Tone.context.state !== 'running') return;
-            synth.triggerAttackRelease(['C6', 'G6', 'C7'], '16n');
-        }
-
-        /**
-         * Plays a sound when the game starts.
-         */
-        function playStartSound() {
-            if (Tone.context.state !== 'running') return;
-            synth.triggerAttackRelease('E4', '16n', 0);
-            synth.triggerAttackRelease('G4', '16n', 0.1);
-        }
-
-        /**
-         * Plays a distinctive sound for game over.
-         */
-        function playGameOverSound() {
-            if (Tone.context.state !== 'running') return;
-            noise.triggerAttackRelease('0.5');
-            synth.triggerAttackRelease(['C3', 'B2', 'A2', 'G2'], '8n', 0.1);
-        }
-
-        // --- CANVAS SETUP ---
-        canvas.width = CANVAS_SIZE;
-        canvas.height = CANVAS_SIZE;
-
-        // --- GAME LOGIC FUNCTIONS ---
-
-        /**
-         * Initializes the game state.
-         */
-        function initGame() {
-            // Reset state
-            snake = [{ x: 10, y: 10 }];
-            direction = 'RIGHT';
-            nextDirection = 'RIGHT';
-            score = 0;
-            gameSpeed = INITIAL_SPEED;
-            isGameOver = false;
-            lastUpdateTime = 0;
-            powerUp.type = null;
-            powerUp.endTime = 0;
-            
-            // Initial UI update
-            updateScoreDisplay();
-            updatePowerUpStatus();
-
-            // Place food/power-up
-            placeItem();
-
-            // Hide overlay and start animation loop
-            overlay.classList.remove('active');
-            playStartSound();
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-            }
-            animationFrameId = requestAnimationFrame(gameLoop);
-        }
-
-        /**
-         * Places a new food item or a power-up on the grid.
-         */
-        function placeItem() {
-            let x, y;
-            let occupied;
-            
-            // Helper to check if a position is occupied by the snake
-            const isOccupied = (x, y) => snake.some(s => s.x === x && s.y === y);
-
-            do {
-                x = Math.floor(Math.random() * GRID_SIZE);
-                y = Math.floor(Math.random() * GRID_SIZE);
-                occupied = isOccupied(x, y);
-            } while (occupied);
-
-            // Determine if it's a food or a power-up
-            if (Math.random() < POWER_UP_CHANCE && powerUp.type === null) {
-                const typeKey = powerUpKeys[Math.floor(Math.random() * powerUpKeys.length)];
-                food = { x, y, type: 'POWER_UP', powerUpType: typeKey };
-            } else {
-                food = { x, y, type: 'FOOD' };
-            }
-        }
-
-        /**
-         * Updates the game state (movement, collision, eating).
-         */
-        function updateGame() {
-            // Determine the actual direction for this movement step
-            direction = nextDirection;
-
-            // Calculate new head position
-            const head = { ...snake[0] };
-            switch (direction) {
-                case 'UP': head.y -= 1; break;
-                case 'DOWN': head.y += 1; break;
-                case 'LEFT': head.x -= 1; break;
-                case 'RIGHT': head.x += 1; break;
-            }
-
-            // 1. Check for Wall Collision
-            const wallCollision = head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE;
-            
-            if (wallCollision && powerUp.type !== 'INVINCIBILITY') {
-                endGame('Wall Crash!');
-                return;
-            } else if (wallCollision && powerUp.type === 'INVINCIBILITY') {
-                // Invincibility: teleport to the opposite side
-                if (head.x < 0) head.x = GRID_SIZE - 1;
-                else if (head.x >= GRID_SIZE) head.x = 0;
-                else if (head.y < 0) head.y = GRID_SIZE - 1;
-                else if (head.y >= GRID_SIZE) head.y = 0;
-            }
-
-
-            // 2. Check for Self-Collision (skip the head itself)
-            const selfCollision = snake.slice(1).some(segment => segment.x === head.x && segment.y === head.y);
-
-            if (selfCollision) {
-                endGame('Ate Yourself!');
-                return;
-            }
-
-            // Add new head
-            snake.unshift(head);
-
-            // 3. Check for Eating Food/Power-up
-            if (head.x === food.x && head.y === food.y) {
-                if (food.type === 'FOOD') {
-                    handleFoodConsumption();
-                } else if (food.type === 'POWER_UP') {
-                    handlePowerUpConsumption(food.powerUpType);
-                }
-            } else {
-                // If no food/power-up was eaten, remove the tail
-                snake.pop();
-            }
-            
-            // Check power-up timer expiration
-            checkPowerUpExpiry();
-        }
-
-        /**
-         * Handles the consumption of regular food.
-         */
-        function handleFoodConsumption() {
-            playEatSound();
-
-            const points = powerUp.type === 'DOUBLE_SCORE' ? 2 : 1;
-            score += points;
-            
-            updateScoreDisplay();
-
-            // Progressive difficulty increase
-            if (score > 0 && score % LEVEL_UP_SCORE === 0) {
-                gameSpeed = Math.max(30, INITIAL_SPEED - (score / LEVEL_UP_SCORE) * SPEED_DECREMENT_PER_LEVEL);
-            }
-
-            // Place next item
-            placeItem();
-        }
-
-        /**
-         * Handles the consumption of a power-up.
-         * @param {string} type - The type of power-up consumed.
-         */
-        function handlePowerUpConsumption(type) {
-            playPowerUpSound();
-
-            // Clear any existing power-up effect
-            if (powerUp.type) {
-                clearPowerUp();
-            }
-
-            // Apply new power-up
-            powerUp.type = type;
-            powerUp.endTime = Date.now() + POWER_UP_DURATION;
-
-            // Apply immediate effects
-            if (type === 'SLOW_MOTION') {
-                gameSpeed *= 2.5; // Temporarily slow down the game
-            }
-            
-            updatePowerUpStatus();
-
-            // Place regular food after power-up is consumed
-            food = {}; // Clear food object to prevent drawing it
-            placeItem();
-        }
-
-        /**
-         * Checks if the current power-up has expired and clears it if so.
-         */
-        function checkPowerUpExpiry() {
-            if (powerUp.type && Date.now() > powerUp.endTime) {
-                clearPowerUp();
-            }
-            updatePowerUpStatus();
-        }
-
-        /**
-         * Clears any active power-up effects.
-         */
-        function clearPowerUp() {
-            if (powerUp.type === 'SLOW_MOTION') {
-                // Restore original speed (this logic assumes speed changes only from score or slow motion)
-                const baseSpeed = INITIAL_SPEED - (Math.floor(score / LEVEL_UP_SCORE)) * SPEED_DECREMENT_PER_LEVEL;
-                gameSpeed = Math.max(30, baseSpeed);
-            }
-            powerUp.type = null;
-            powerUp.endTime = 0;
-            updatePowerUpStatus();
-        }
-
-        /**
-         * Ends the game and displays the game over message.
-         * @param {string} reason - The reason for the game ending.
-         */
-        function endGame(reason) {
-            isGameOver = true;
-            playGameOverSound();
-            cancelAnimationFrame(animationFrameId);
-            
-            clearPowerUp(); // Clear any ongoing effects
-
-            messageTitle.textContent = `GAME OVER: ${reason}`;
-            messageScore.textContent = `FINAL SCORE: ${score}`;
-            startButton.textContent = 'RESTART';
-            overlay.classList.add('active');
-        }
-
-        // --- DRAWING AND UI ---
-
-        /**
-         * Draws the entire game state.
-         */
-        function draw() {
-            // Clear canvas
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-            // Draw Power-up/Food
-            if (food.x !== undefined) {
-                const color = food.type === 'FOOD'
-                    ? '#ff00ff'
-                    : powerUpTypes[food.powerUpType].color;
-
-                ctx.fillStyle = color;
-                ctx.fillRect(food.x * TILE_SIZE, food.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                
-                // Add retro sparkle effect
-                ctx.strokeStyle = '#fff';
-                ctx.strokeRect(food.x * TILE_SIZE, food.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-            }
-
-            // Draw Snake
-            snake.forEach((segment, index) => {
-                const isInvincible = powerUp.type === 'INVINCIBILITY';
-
-                if (index === 0) {
-                    // Head
-                    ctx.fillStyle = isInvincible ? 'red' : '#00ff00';
-                } else {
-                    // Body
-                    ctx.fillStyle = isInvincible ? '#ff6666' : '#00cc00';
-                }
-
-                ctx.fillRect(segment.x * TILE_SIZE, segment.y * TILE_SIZE, TILE_SIZE - 1, TILE_SIZE - 1);
-
-                // Add light shading to enhance pixel look
-                ctx.strokeStyle = isInvincible ? '#330000' : '#003300';
-                ctx.strokeRect(segment.x * TILE_SIZE, segment.y * TILE_SIZE, TILE_SIZE - 1, TILE_SIZE - 1);
-            });
-        }
-
-        /**
-         * Updates the score display on the UI.
-         */
-        function updateScoreDisplay() {
-            const paddedScore = String(score).padStart(2, '0');
-            scoreDisplay.textContent = `SCORE: ${paddedScore}`;
-        }
-
-        /**
-         * Updates the power-up status bar.
-         */
-        function updatePowerUpStatus() {
-            if (powerUp.type) {
-                const remaining = Math.ceil((powerUp.endTime - Date.now()) / 1000);
-                const typeInfo = powerUpTypes[powerUp.type];
-                powerupStatus.textContent = `${typeInfo.effect} active! (${remaining}s)`;
-                powerupStatus.style.color = typeInfo.color;
-                powerupStatus.style.textShadow = `0 0 5px ${typeInfo.color}, 0 0 10px ${typeInfo.color}`;
-            } else {
-                powerupStatus.textContent = 'POWER UP: --';
-                powerupStatus.style.color = 'var(--food-color)';
-                powerupStatus.style.textShadow = 'var(--retro-shadow-yellow)';
-            }
-        }
-        
-        // --- GAME LOOP ---
-        
-        /**
-         * The main game loop using requestAnimationFrame for smooth drawing.
-         * @param {number} timestamp - The current time provided by requestAnimationFrame.
-         */
-        function gameLoop(timestamp) {
-            if (isGameOver) return;
-
-            // Only update game state (movement) after the required gameSpeed interval
-            const activeSpeed = powerUp.type === 'SLOW_MOTION' ? (gameSpeed * 2.5) : gameSpeed;
-
-            if (timestamp - lastUpdateTime > activeSpeed) {
-                updateGame();
-                lastUpdateTime = timestamp;
-            }
-
-            // Always draw every frame for smooth animation
-            draw();
-            
-            // Update power-up timer in the UI
-            updatePowerUpStatus();
-
-            animationFrameId = requestAnimationFrame(gameLoop);
-        }
-
-
-        // --- INPUT HANDLING ---
-
-        /**
-         * Sets the next intended direction, preventing immediate reverse movement.
-         * @param {string} newDirection - The direction to set ('UP', 'DOWN', 'LEFT', 'RIGHT').
-         */
-        function setDirection(newDirection) {
-            if (isGameOver) return;
-            
-            const isHorizontal = direction === 'LEFT' || direction === 'RIGHT';
-            const isVertical = direction === 'UP' || direction === 'DOWN';
-
-            // Prevent reversing direction
-            if ((isHorizontal && (newDirection === 'LEFT' || newDirection === 'RIGHT')) ||
-                (isVertical && (newDirection === 'UP' || newDirection === 'DOWN'))) {
-                // Allows same direction or perpendicular turns
-                nextDirection = newDirection;
-            } else if ((direction === 'UP' && newDirection === 'DOWN') || 
-                       (direction === 'DOWN' && newDirection === 'UP') || 
-                       (direction === 'LEFT' && newDirection === 'RIGHT') || 
-                       (direction === 'RIGHT' && newDirection === 'LEFT')) {
-                // Explicitly block 180-degree turn
-                return;
-            } else {
-                nextDirection = newDirection;
-            }
-        }
-
-        // Keyboard Listener
-        document.addEventListener('keydown', (e) => {
-            if (isGameOver && (e.key === ' ' || e.key === 'Enter')) {
-                // Auto-start on space/enter if game over
-                initGame();
-                return;
-            }
-            
-            // Map keys to directions
-            switch (e.key) {
-                case 'ArrowUp':
-                case 'w':
-                case 'W':
-                    setDirection('UP');
-                    break;
-                case 'ArrowDown':
-                case 's':
-                case 'S':
-                    setDirection('DOWN');
-                    break;
-                case 'ArrowLeft':
-                case 'a':
-                case 'A':
-                    setDirection('LEFT');
-                    break;
-                case 'ArrowRight':
-                case 'd':
-                case 'D':
-                    setDirection('RIGHT');
-                    break;
-            }
-        });
-
-        // Touch/Mobile Controls Listener
-        mobileControls.addEventListener('click', (e) => {
-            const btn = e.target.closest('.d-pad-btn');
-            if (btn) {
-                const dir = btn.dataset.direction;
-                if (dir) {
-                    setDirection(dir);
-                }
-            }
-        });
-        
-        document.getElementById('down-button').addEventListener('click', (e) => {
-            setDirection('DOWN');
-        });
-
-        // Start/Restart Button Listener
-        startButton.addEventListener('click', () => {
-            if (Tone.context.state !== 'running') {
-                Tone.start();
-            }
-            initGame();
-        });
-
-        // Initial setup on load
-        window.onload = function() {
-            // Display initial press START message
-            overlay.classList.add('active');
-            draw(); // Draw empty board
-        }
-
-    </script>
+<div class="container">
+  <h1>Upload Image to Telegra.ph</h1>
+  <form method="post" action="https://telegra.ph/upload" enctype="multipart/form-data" target="_blank">
+    <label for="select-file">Select Image (&lt;5MB):</label>
+    <input id="select-file" name="file0" type="file">
+    <input value="Click to Upload" type="submit">
+  </form>
+  <hr />
+  <div class="image-container">
+    <p>The URL of the image below is <strong>https://telegra.ph/file/d39104297903c204c2311.jpg</strong></p>
+    <img src="https://telegra.ph/file/d39104297903c204c2311.jpg" alt="Uploaded Image">
+  </div>
+  <div class="footer">
+    Developed by <a href="https://telegram.me/ZORO2045">ፚ Ꭷ Ꮢ Ꭷ ❥</a> &copy; 2024</a>
+  </div>
+</div>
 </body>
 </html>
